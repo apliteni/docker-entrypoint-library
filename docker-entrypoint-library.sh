@@ -19,8 +19,7 @@ logs_init() {
 logs_log() {
   local level="${1}" message="${2}"
   if logs_is_loggable "${level}"; then
-    datetime="$(TZ=UTC date '+%F %H:%M:%S %z')"
-    echo "${datetime} [${level}] ${message}" >&2
+    echo "${message}" >&2
   fi
 }
 
@@ -70,7 +69,7 @@ detect_ram_size_mb() {
     local pcts_of_ram_size="${1}" total_ram_size_mb ram_size_mb
     total_ram_size_mb="$(free -m | awk 'NR==2 {print $2}')"
     ram_size_mb="$(( total_ram_size_mb * pcts_of_ram_size / 100 ))"
-    logs_info "Calculated ${pcts_of_ram_size}% of total RAM size (${total_ram_size_mb}MB) - ${ram_size_mb}MB"
+    logs_debug "Calculated ${pcts_of_ram_size}% of total RAM size (${total_ram_size_mb}MB) - ${ram_size_mb}MB"
     echo "${ram_size_mb}"
   }
 
@@ -93,11 +92,11 @@ detect_ram_size_mb() {
       ;;
     [Mm][Bb]) # RAM size in MBs
       ram_size_mb="${ram_size_value}"
-      logs_info "Converted '${ram_size}' to ${ram_size_mb}MB"
+      logs_debug "Converted '${ram_size}' to ${ram_size_mb}MB"
       ;;
     [Gg][Bb]) # RAM size in GBs
       ram_size_mb="$((ram_size_value * 1024))"
-      logs_info "Converted '${ram_size}' to ${ram_size_mb}MB"
+      logs_debug "Converted '${ram_size}' to ${ram_size_mb}MB"
       ;;
     *)
       fail "detect_ram_size_mb: '${ram_size}' must contains memory size with suffix"
