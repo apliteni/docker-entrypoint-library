@@ -1,24 +1,17 @@
 #!/usr/bin/env sh
 
-LOGGER_LEVELS='trace debug info warn error fatal'
-LOGGER_DEFAULT_LEVEL="${LOGGER_DEFAULT_LEVEL:-info}"
-
-logs_set_log_level() {
-  local level="${1}"
-  LOGGER_LEVEL="${level}"
-}
-
-logs_init() {
-  local default_logger_level="${1}"
-  if [[ "${LOGGER_LEVEL:-}" == '' ]]; then
-    logs_set_log_level "${default_logger_level}"
-  fi
-  logs_define_helper_fns ${LOGGER_LEVELS}
-}
+LOG_LEVELS='trace debug info warn error fatal'
+DEFAULT_LOG_LEVEL='info'
 
 logs_log() {
   local level="${1}" message="${2}"
   if logs_is_loggable "${level}"; then
+    if [[ "${LOG_PRINT_TIMESTAMP:-}" != '' ]]; then
+      datetime="$(TZ=UTC date '+%F %H:%M:%S %z')"
+      line="${datetime} [${level}] ${message}"
+    else
+      line="[${level}] ${message}"
+    fi
     echo "[${level}] ${message}" >&2
   fi
 }
@@ -39,8 +32,8 @@ logs_is_loggable() {
   local level="${1}"
   local int_log_level configured_int_log_level
 
-  int_log_level="$(arrays_index_of "${level}" ${LOGGER_LEVELS})"
-  configured_int_log_level="$(arrays_index_of "${LOGGER_LEVEL}" ${LOGGER_LEVELS})"
+  int_log_level="$(arrays_index_of "${level}" ${LOG_LEVELS})"
+  configured_int_log_level="$(arrays_index_of "${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}" ${LOG_LEVELS})"
 
   [[ ! ${int_log_level} -lt ${configured_int_log_level} ]]
 }
@@ -106,4 +99,5 @@ detect_ram_size_mb() {
   echo "${ram_size_mb}"
 }
 
-logs_init "${LOGGER_DEFAULT_LEVEL}"
+logs_define_helper_fns ${LOG_LEVELS}
+
