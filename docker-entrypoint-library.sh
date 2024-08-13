@@ -1,7 +1,8 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 LOG_LEVELS='trace debug info warn error fatal'
 DEFAULT_LOG_LEVEL='info'
+LOG_LEVEL_VAR="${LOG_LEVEL_VAR:-LOG_LEVEL}"
 
 logs_log() {
   local level="${1}" message="${2}"
@@ -28,12 +29,17 @@ EOF
   done
 }
 
+logs_configured_log_level() {
+  local log_level="${!LOG_LEVEL_VAR:-}"
+  echo "${log_level:-${DEFAULT_LOG_LEVEL}}"
+}
+
 logs_is_loggable() {
   local level="${1}"
   local int_log_level configured_int_log_level
 
   int_log_level="$(arrays_index_of "${level}" ${LOG_LEVELS})"
-  configured_int_log_level="$(arrays_index_of "${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}" ${LOG_LEVELS})"
+  configured_int_log_level="$(arrays_index_of "$(logs_configured_log_level)" ${LOG_LEVELS})"
 
   [[ ! ${int_log_level} -lt ${configured_int_log_level} ]]
 }
@@ -100,4 +106,3 @@ detect_ram_size_mb() {
 }
 
 logs_define_helper_fns ${LOG_LEVELS}
-
