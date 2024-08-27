@@ -4,6 +4,14 @@ LOG_LEVELS='trace debug info warn error fatal'
 DEFAULT_LOG_LEVEL='info'
 LOG_LEVEL_VAR="${LOG_LEVEL_VAR:-LOG_LEVEL}"
 
+
+env_print_var_value() {
+  local var="${1}"
+  if [[ "${var}" != "" ]]; then
+    eval 'echo "${'"$var"':-}"'
+  fi
+}
+
 logs_log() {
   local level="${1}" message="${2}"
   if logs_is_loggable "${level}"; then
@@ -30,7 +38,8 @@ EOF
 }
 
 logs_configured_log_level() {
-  local log_level="${!LOG_LEVEL_VAR:-}"
+  local log_level
+  log_level="$(env_print_var_value "${LOG_LEVEL_VAR:-}")"
   echo "${log_level:-${DEFAULT_LOG_LEVEL}}"
 }
 
