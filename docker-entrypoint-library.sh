@@ -2,25 +2,29 @@
 
 LOG_LEVELS='trace debug info warn error fatal'
 DEFAULT_LOG_LEVEL='info'
-LOG_LEVEL_VAR="${LOG_LEVEL_VAR:-LOG_LEVEL}"
 
+env_print_full_var_name() {
+  local var_name="${1}"
+  local prefix="${ENV_VARS_PREFIX:-}"
+  if [[ "${prefix}" == "" ]]; then
+    echo "${var_name}"
+  else
+    echo "${prefix}_${var_name}"
+  fi
+}
 
 env_print_var_value() {
-  local var="${1}"
-  if [[ "${var}" != "" ]]; then
-    eval 'echo "${'"$var"':-}"'
+  local var_name="${1}"
+  local full_var_name; full_var_name="$(env_print_full_var_name "${var_name}")"
+  if [[ "${full_var_name}" != "" ]]; then
+    eval 'echo "${'"$full_var_name"':-}"'
   fi
 }
 
 logs_log() {
   local level="${1}" message="${2}"
   if logs_is_loggable "${level}"; then
-    if [[ "${LOG_PRINT_TIMESTAMP:-}" != '' ]]; then
-      datetime="$(TZ=UTC date '+%F %H:%M:%S %z')"
-      line="${datetime} [${level}] ${message}"
-    else
-      line="[${level}] ${message}"
-    fi
+    line="[${level}] ${message}"
     echo "[${level}] ${message}" >&2
   fi
 }
@@ -38,8 +42,7 @@ EOF
 }
 
 logs_configured_log_level() {
-  local log_level
-  log_level="$(env_print_var_value "${LOG_LEVEL_VAR:-}")"
+  local log_level; log_level="$(env_print_var_value "LOG_LEVEL")"
   echo "${log_level:-${DEFAULT_LOG_LEVEL}}"
 }
 
@@ -72,45 +75,19 @@ arrays_index_of() {
   done
 }
 
-detect_ram_size_mb() {
-  get_pcts_of_ram_mb() {
-    local pcts_of_ram_size="${1}" total_ram_size_mb ram_size_mb
-    total_ram_size_mb="$(free -m | awk 'NR==2 {print $2}')"
-    ram_size_mb="$(( total_ram_size_mb * pcts_of_ram_size / 100 ))"
-    logs_debug "Calculated ${pcts_of_ram_size}% of total RAM size (${total_ram_size_mb}MB) - ${ram_size_mb}MB"
-    echo "${ram_size_mb}"
-  }
+detect_allowed_ram_size_mb() {
+  local ram_size_in_pcts_var="${1:-RAM_SIZE_IN_PCTS}"
+  local ram_size_in_pcts; ram_size_in_pcts="$(env_print_var_value "${ram_size_in_pcts_var}")"
 
-  local ram_size="${1}" ram_size_mb
-  local ram_size_measure="${ram_size//[0-9]/}"
-  local ram_size_value="${ram_size//[^0-9]/}" 
-
-  logs_trace "detect_ram_size_mb: value: ${ram_size_value}, measure: ${ram_size_measure}" 
-  if [[ "${ram_size}" == "" ]]; then
-    fail "detect_ram_size_mb: argument '${ram_size}' must not be empty"
+  logs_trace "detect_ram_size: env_var: ${ram_size_var_in_pcts}, value: ${ram_size_in_pcts}" 
+  if [[ "${ram_size_in_pcts}" == "" ]]; then
+    fail "detect_ram_size: ${ram_size_in_pcts_var} must be nonempty"
   fi
 
-  if [[ "${ram_size_value}" -lt 0 ]]; then
-    fail "detect_ram_size_mb: '${ram_size}' must contains memory size with suffix"
-  fi
+  local total_ram_size_mb; total_ram_size_mb="$(free -m | awk 'NR==2 {print $2}')"
+  local ram_size_mb; ram_size_mb="$(( total_ram_size_mb * ram_size_in_pcts / 100 ))"
 
-  case "${ram_size_measure}" in
-    '%') # RAM size as pcts of total RAM
-      ram_size_mb="$(get_pcts_of_ram_mb "${ram_size_value}")"
-      ;;
-    [Mm][Bb]) # RAM size in MBs
-      ram_size_mb="${ram_size_value}"
-      logs_debug "Converted '${ram_size}' to ${ram_size_mb}MB"
-      ;;
-    [Gg][Bb]) # RAM size in GBs
-      ram_size_mb="$((ram_size_value * 1024))"
-      logs_debug "Converted '${ram_size}' to ${ram_size_mb}MB"
-      ;;
-    *)
-      fail "detect_ram_size_mb: '${ram_size}' must contains memory size with suffix"
-      ;;
-  esac
-
+  logs_info "Allowed to use ${ram_size_in_pcts}% of total RAM size (${total_ram_size_mb}MB) - ${ram_size_mb}MB"
   echo "${ram_size_mb}"
 }
 
