@@ -3,62 +3,60 @@
 LOG_LEVELS='trace debug info warn error fatal'
 DEFAULT_LOG_LEVEL='info'
 
-env_print_full_var_name() {
+print_full_var_name() {
   local var_name="${1}"
-  local prefix="${ENV_VARS_PREFIX:-}"
-  if [[ "${prefix}" == "" ]]; then
-    echo "${var_name}"
-  else
-    echo "${prefix}_${var_name}"
-  fi
+  local upcased_container_name="$(echo ${CONTAINER_NAME} | tr '[a-z]' '[A-Z]')"
+  local prefix="${upcased_container_name//-/_}"
+
+  echo "${prefix}_${var_name}"
 }
 
-env_print_var_value() {
+print_env_var() {
   local var_name="${1}"
-  local full_var_name; full_var_name="$(env_print_full_var_name "${var_name}")"
+  local full_var_name; full_var_name="$(print_full_var_name "${var_name}")"
   if [[ "${full_var_name}" != "" ]]; then
     eval 'echo "${'"$full_var_name"':-}"'
   fi
 }
 
-logs_log() {
+log() {
   local level="${1}" message="${2}"
-  if logs_is_loggable "${level}"; then
+  if is_log_level_visible "${level}"; then
     line="[${level}] ${message}"
     echo "[${level}] ${message}" >&2
   fi
 }
 
-logs_define_helper_fns() {
+define_log_helper_fns() {
   while [[ "${1:-}" != "" ]]; do 
     logger_level="${1}"
     source /dev/stdin <<-EOF
-      logs_${logger_level}() {
-        logs_log "${logger_level}" "\${1}";
+      log_${logger_level}() {
+        log "${logger_level}" "\${1}";
       };
 EOF
     shift
   done
 }
 
-logs_configured_log_level() {
-  local log_level; log_level="$(env_print_var_value "LOG_LEVEL")"
+print_configured_log_level() {
+  local log_level; log_level="$(print_env_var "LOG_LEVEL")"
   echo "${log_level:-${DEFAULT_LOG_LEVEL}}"
 }
 
-logs_is_loggable() {
+is_log_level_visible() {
   local level="${1}"
   local int_log_level configured_int_log_level
 
   int_log_level="$(arrays_index_of "${level}" ${LOG_LEVELS})"
-  configured_int_log_level="$(arrays_index_of "$(logs_configured_log_level)" ${LOG_LEVELS})"
+  configured_int_log_level="$(arrays_index_of "$(print_configured_log_level)" ${LOG_LEVELS})"
 
   [[ ! ${int_log_level} -lt ${configured_int_log_level} ]]
 }
 
 fail() {
   local message="${1}"
-  logs_fatal "${message}"
+  log_fatal "${message}"
   exit 1
 }
 
@@ -75,20 +73,19 @@ arrays_index_of() {
   done
 }
 
-detect_allowed_ram_size_mb() {
-  local ram_size_in_pcts_var="${1:-RAM_SIZE_IN_PCTS}"
-  local ram_size_in_pcts; ram_size_in_pcts="$(env_print_var_value "${ram_size_in_pcts_var}")"
+calculate_max_ram_size_mb() {
+  local max_memory_pcts; max_memory_pcts="$(print_env_var MAX_RAM_PCTS)"
 
-  logs_trace "detect_ram_size: env_var: ${ram_size_var_in_pcts}, value: ${ram_size_in_pcts}" 
-  if [[ "${ram_size_in_pcts}" == "" ]]; then
-    fail "detect_ram_size: ${ram_size_in_pcts_var} must be nonempty"
+  if [[ "${max_memory_pcts}" == "" ]]; then
+    local max_ram_pcts_var_name; max_ram_pcts_var_name="$(print_full_var_name MAX_RAM_PCTS)"
+    fail "${max_ram_pcts_var_name} must be nonempty"
   fi
 
   local total_ram_size_mb; total_ram_size_mb="$(free -m | awk 'NR==2 {print $2}')"
-  local ram_size_mb; ram_size_mb="$(( total_ram_size_mb * ram_size_in_pcts / 100 ))"
+  local max_ram_size_mb; max_ram_size_mb="$(( total_ram_size_mb * max_memory_pcts / 100 ))"
 
-  logs_info "Allowed to use ${ram_size_in_pcts}% of total RAM size (${total_ram_size_mb}MB) - ${ram_size_mb}MB"
-  echo "${ram_size_mb}"
+  log_info "Max RAM size to use: ${max_ram_size_mb}MB (${max_memory_pcts}% of total RAM ${total_ram_size_mb}MB)"
+  echo "${max_ram_size_mb}"
 }
 
-logs_define_helper_fns ${LOG_LEVELS}
+define_log_helper_fns ${LOG_LEVELS}
