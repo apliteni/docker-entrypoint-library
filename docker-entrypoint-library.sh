@@ -43,7 +43,7 @@ EOF
   done
 }
 
-print_configured_log_level() {
+print_current_log_level() {
   local log_level; log_level="$(print_env_var "LOG_LEVEL")"
   echo "${log_level:-${DEFAULT_LOG_LEVEL}}"
 }
@@ -53,7 +53,7 @@ is_log_level_visible() {
   local int_log_level configured_int_log_level
 
   int_log_level="$(arrays_index_of "${level}" ${LOG_LEVELS})"
-  configured_int_log_level="$(arrays_index_of "$(print_configured_log_level)" ${LOG_LEVELS})"
+  configured_int_log_level="$(arrays_index_of "$(print_current_log_level)" ${LOG_LEVELS})"
 
   [[ ! ${int_log_level} -lt ${configured_int_log_level} ]]
 }
@@ -77,6 +77,7 @@ arrays_index_of() {
   done
 }
 
+# Caclculates max allowed memory size using ${COMPONENT_NAME}_MAX_RAM_PCTS
 calculate_max_ram_size_mb() {
   local max_memory_pcts; max_memory_pcts="$(print_env_var MAX_RAM_PCTS)"
 
