@@ -86,11 +86,15 @@ calculate_max_ram_size_mb() {
     fail "${max_ram_pcts_var_name} must be nonempty"
   fi
 
-  local total_ram_size_mb; total_ram_size_mb="$(free -m | awk 'NR==2 {print $2}')"
+  local total_ram_size_mb; total_ram_size_mb="$(detect_total_ram_size_mb)"
   local max_ram_size_mb; max_ram_size_mb="$(( total_ram_size_mb * max_memory_pcts / 100 ))"
 
   log_info "Max RAM size to use: ${max_ram_size_mb}MB (${max_memory_pcts}% of total RAM ${total_ram_size_mb}MB)"
   echo "${max_ram_size_mb}"
+}
+
+detect_total_ram_size_mb() {
+  free -m | awk 'NR==2 {print $2}'
 }
 
 define_log_helper_fns ${LOG_LEVELS}
