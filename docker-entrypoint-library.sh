@@ -81,7 +81,7 @@ detect_total_ram_size() {
   free -b | awk 'NR==2 {print $2}'
 }
 
-calculate_max_ram_size() {
+calculate_container_max_ram_size() {
   local max_memory_pcts; max_memory_pcts="$(print_env_var MAX_RAM_PCTS)"
 
   if [[ "${max_memory_pcts}" == "" ]]; then
