@@ -95,27 +95,68 @@ calculate_max_ram_size() {
   echo "${max_ram_size}"
 }
 
-get_arg_or_read_stdin() {
-  if [[ -n "${1:-}" ]]; then
-    echo "${1}"
-  elif [[ ! -t 0 ]]; then
-    cat
-  fi
+print_stdin_and_args() {
+  while true; do
+    if [[ ! -t 0 ]] && IFS= read -r line; then
+      echo "${line}"
+    elif [[ -n "${1:-}" ]]; then
+      echo "${1}"
+      shift
+    else
+      break
+    fi
+  done
+}
+
+get_arg() {
+  local arg_no="${1}"; shift
+  echo "${@}" | {
+    local i=1
+    while IFS= read -r line; do
+      if [[ "${i}" == "${arg_no}" ]]; then
+        echo "${line}"
+        return
+      fi
+      i="$(( i + 1 ))"
+    done
+  }
 }
 
 to_kibibytes() {
-  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  local bytes; bytes="$(print_stdin_and_args "${1:-}")"
   echo "$(( bytes / 1024 ))"
 }
 
 to_mebibytes() {
-  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  local bytes; bytes="$(print_stdin_and_args "${1:-}")"
   echo "$(( bytes / 1024 / 1024 ))"
 }
 
 to_gibibytes() {
-  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  local bytes; bytes="$(print_stdin_and_args "${1:-}")"
   echo "$(( bytes / 1024 / 1024 / 1024 ))"
+}
+
+maximum() {
+  local args; args="$(print_stdin_and_args "${@}")"
+  local value; value="$(get_arg 1 "${args}")"
+  local maximum; maximum="$(get_arg 2 "${args}")"
+  if [[ "${value}" -gt "${maximum}" ]]; then
+    echo "${maximum}"
+  else
+    echo "${value}"
+  fi
+}
+
+minimum() {
+  local args; args="$(print_stdin_and_args "${@}")"
+  local value; value="$(get_arg 1 "${args}")"
+  local minimum; minimum="$(get_arg 2 "${args}")"
+  if [[ "${value}" -lt "${minimum}" ]]; then
+    echo "${minimum}"
+  else
+    echo "${value}"
+  fi
 }
 
 define_log_helper_fns ${LOG_LEVELS}
