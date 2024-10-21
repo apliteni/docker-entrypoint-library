@@ -77,8 +77,11 @@ arrays_index_of() {
   done
 }
 
-# Caclculates max allowed memory size using ${COMPONENT_NAME}_MAX_RAM_PCTS
-calculate_max_ram_size_mb() {
+detect_total_ram_size() {
+  free -b | awk 'NR==2 {print $2}'
+}
+
+calculate_max_ram_size() {
   local max_memory_pcts; max_memory_pcts="$(print_env_var MAX_RAM_PCTS)"
 
   if [[ "${max_memory_pcts}" == "" ]]; then
@@ -86,15 +89,33 @@ calculate_max_ram_size_mb() {
     fail "${max_ram_pcts_var_name} must be nonempty"
   fi
 
-  local total_ram_size_mb; total_ram_size_mb="$(detect_total_ram_size_mb)"
-  local max_ram_size_mb; max_ram_size_mb="$(( total_ram_size_mb * max_memory_pcts / 100 ))"
+  local total_ram_size; total_ram_size="$(detect_total_ram_size)"
+  local max_ram_size; max_ram_size="$(( total_ram_size * max_memory_pcts / 100 ))"
 
-  log_info "Max RAM size to use: ${max_ram_size_mb}MB (${max_memory_pcts}% of total RAM ${total_ram_size_mb}MB)"
-  echo "${max_ram_size_mb}"
+  echo "${max_ram_size}"
 }
 
-detect_total_ram_size_mb() {
-  free -m | awk 'NR==2 {print $2}'
+get_arg_or_read_stdin() {
+  if [[ -n "${1:-}" ]]; then
+    echo "${1}"
+  elif [[ ! -t 0 ]]; then
+    cat
+  fi
+}
+
+to_kibibytes() {
+  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  echo "$(( bytes / 1024 ))"
+}
+
+to_mebibytes() {
+  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  echo "$(( bytes / 1024 / 1024 ))"
+}
+
+to_gibibytes() {
+  local bytes; bytes="$(get_arg_or_read_stdin "${@}")"
+  echo "$(( bytes / 1024 / 1024 / 1024 ))"
 }
 
 define_log_helper_fns ${LOG_LEVELS}

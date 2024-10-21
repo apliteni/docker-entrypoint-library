@@ -25,9 +25,11 @@ Source it and use
 ```
 source /docker-entrypoint-library.sh
 ...
-RAM_SIZE_MB=$(detect_ram_size_mb '20%')
+MAX_RAM_PCTS=5
+detect_total_ram_size | to_mebibytes # prints something like 16384 if you have 16G RAM
+caclulate_ram_size | to_mebibytes # prints something like 819 (5% of RAM) if you have 16G RAM
 ... 
-logs.info "Some useful info message" 
+log_info "Some useful info message"
 ...
 if something_wrong; then
   fail "This is fatal error"
