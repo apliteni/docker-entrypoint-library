@@ -82,17 +82,17 @@ detect_total_ram_size() {
 }
 
 calculate_container_max_ram_size() {
-  local max_memory_pcts; max_memory_pcts="$(print_env_var MAX_RAM_PCTS)"
+  local containter_ram_pcts; containter_ram_pcts="$(print_env_var CONTAINER_RAM_PCTS)"
 
-  if [[ "${max_memory_pcts}" == "" ]]; then
-    local max_ram_pcts_var_name; max_ram_pcts_var_name="$(print_full_var_name MAX_RAM_PCTS)"
-    fail "${max_ram_pcts_var_name} must be nonempty"
+  if [[ "${containter_ram_pcts}" == "" ]]; then
+    local container_ram_pcts_var_name; container_ram_pcts_var_name="$(print_full_var_name CONTAINER_RAM_PCTS)"
+    fail "${container_ram_pcts_var_name} must be nonempty"
   fi
 
   local total_ram_size; total_ram_size="$(detect_total_ram_size)"
-  local max_ram_size; max_ram_size="$(( total_ram_size * max_memory_pcts / 100 ))"
+  local container_ram_size; container_ram_size="$(( total_ram_size * containter_ram_pcts / 100 ))"
 
-  echo "${max_ram_size}"
+  echo "${container_ram_size}"
 }
 
 print_stdin_and_args() {
