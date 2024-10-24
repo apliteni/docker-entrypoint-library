@@ -5,7 +5,7 @@ DEFAULT_LOG_LEVEL='info'
 
 print_full_var_name() {
   local var_name="${1}"
-  local upcased_container_name="$(echo ${COMPONENT_NAME} | tr '[a-z]' '[A-Z]')"
+  local upcased_container_name="$(echo "${COMPONENT_NAME:-}" | tr '[a-z]' '[A-Z]')"
   local prefix="${upcased_container_name//-/_}"
 
   if [[ "${prefix}" == "" ]]; then
